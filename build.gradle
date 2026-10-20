@@ -24,6 +24,7 @@ dependencies {
     implementation(libs.spring.boot.starter.validation)
     implementation(libs.spring.boot.starter.liquibase)
     implementation(libs.spring.boot.starter.actuator)
+    implementation(libs.springdoc.openapi.starter.webmvc.ui)
     runtimeOnly(libs.postgresql)
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
