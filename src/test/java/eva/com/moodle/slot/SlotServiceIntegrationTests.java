@@ -2,6 +2,7 @@ package eva.com.moodle.slot;
 
 import eva.com.moodle.TestcontainersConfiguration;
 import eva.com.moodle.common.BusinessException;
+import eva.com.moodle.meeting.MeetingRepository;
 import eva.com.moodle.slot.UserSlotStatus.TimeSlotPeriod;
 import eva.com.moodle.user.User;
 import eva.com.moodle.user.UserRepository;
@@ -40,6 +41,8 @@ class SlotServiceIntegrationTests {
     private CalendarRepository calendarRepository;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private MeetingRepository meetingRepository;
 
     private Calendar calendar;
     private Long userId;
@@ -54,6 +57,7 @@ class SlotServiceIntegrationTests {
 
     @BeforeEach
     void setUp() {
+        meetingRepository.deleteAllInBatch();
         slotRepository.deleteAllInBatch();
         calendarRepository.deleteAllInBatch();
         userRepository.deleteAllInBatch();

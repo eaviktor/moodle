@@ -14,8 +14,15 @@ The following assumption about the task and the service has been made:
 docker compose up -d --build  
 ```
 
+## Reset the database
+
+```sh
+docker compose down -v
+docker compose up -d --build
+```
+
 http://localhost:8080
-Swagger is at http://localhost:8080/swagger-ui.html.
+Swagger is at http://localhost:8080/swagger-ui.html
 
 Create a user
 
@@ -52,9 +59,12 @@ Availability for a range:
 curl 'localhost:8080/api/v1/slots/1/availableSlots?from=2026-11-02T08:00:00Z&to=2026-11-02T18:00:00Z'
 ```
 
-## Reset the database
+Schedule a meeting on a free slot
 
 ```sh
-docker compose down -v
-docker compose up -d --build
+curl -X POST localhost:8080/api/v1/meetings/1 \
+  -H 'Content-Type: application/json' \
+  -d '{"slotId": 1, "title": "Planning", "description": "Q1 roadmap", "participants": [{"name": "bla", "email": "test@gmail.com"}]}'
+
+curl localhost:8080/api/v1/meetings/1/1
 ```
