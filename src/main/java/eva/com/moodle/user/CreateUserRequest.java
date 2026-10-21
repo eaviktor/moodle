@@ -3,5 +3,5 @@ package eva.com.moodle.user;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
-public record CreateUserRequest(@NotBlank @Email String email) {
+public record CreateUserRequest(@NotBlank String name, @NotBlank @Email String email) {
 }

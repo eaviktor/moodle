@@ -95,6 +95,7 @@ class MeetingServiceIntegrationTests {
 
     private Calendar createCalendar(String email) {
         User user = new User();
+        user.setName(email);
         user.setEmail(email);
         Calendar newCalendar = new Calendar();
         newCalendar.setUser(userRepository.save(user));

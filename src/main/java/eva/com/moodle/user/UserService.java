@@ -17,18 +17,19 @@ public class UserService {
 
     public UserResponse create(final CreateUserRequest request) {
         final User userEntity = new User();
+        userEntity.setName(request.name());
         userEntity.setEmail(request.email());
         final User user = users.saveAndFlush(userEntity);
         final Calendar calendar = new Calendar();
         calendar.setUser(user);
         calendars.save(calendar);
-        return new UserResponse(user.getId(), user.getEmail());
+        return new UserResponse(user.getId(), user.getName(), user.getEmail());
     }
 
     @Transactional(readOnly = true)
     public UserResponse get(final Long userId) {
         return users.findById(userId)
-                .map(u -> new UserResponse(u.getId(), u.getEmail()))
+                .map(u -> new UserResponse(u.getId(), u.getName(), u.getEmail()))
                 .orElseThrow(() -> BusinessException.notFound("User", userId));
     }
 }
