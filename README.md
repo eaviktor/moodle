@@ -4,7 +4,11 @@ The following assumption about the task and the service has been made:
 - Security and user stuff accepted as is by "userId"(mostly to simplify the data model) which in reality usually a completely different service and this service
   makes a call or included in jwt
 - Meetings includes names/emails and not relay on user
-- No caching or "reservation" in redis
+- No caching or "reservation process" in redis
+- I tried to avoid adding funny constraints to a database directly since even tho this is a "toy" project adding hard
+  constraints
+  like the new postgress feature with no time overlaps or any other sophisticated stuff can really backfire the moment
+  business logic changes in an expected way
 
 ### How to test
 
