@@ -3,6 +3,9 @@ package eva.com.moodle.slot;
 import eva.com.moodle.TestcontainersConfiguration;
 import eva.com.moodle.common.BusinessException;
 import eva.com.moodle.meeting.MeetingRepository;
+import eva.com.moodle.meeting.MeetingService;
+import eva.com.moodle.meeting.Participant;
+import eva.com.moodle.meeting.ScheduleMeetingRequest;
 import eva.com.moodle.slot.UserSlotStatus.TimeSlotPeriod;
 import eva.com.moodle.user.User;
 import eva.com.moodle.user.UserRepository;
@@ -43,6 +46,8 @@ class SlotServiceIntegrationTests {
     private UserRepository userRepository;
     @Autowired
     private MeetingRepository meetingRepository;
+    @Autowired
+    private MeetingService meetingService;
 
     private Calendar calendar;
     private Long userId;
@@ -210,6 +215,43 @@ class SlotServiceIntegrationTests {
         assertThatThrownBy(() -> slotService.availiableSlots(UNKNOWN_USER_ID, at("00:00"), at("23:59")))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void updateStatusSlot() {
+        Slot testSlot = saveSlot(calendar, "09:00", "10:00", SlotStatus.FREE);
+
+        assertThat(slotService.updateStatus(userId, testSlot.getId(), SlotStatus.BOOKED).status()).isEqualTo(SlotStatus.BOOKED);
+        assertThat(slotService.updateStatus(userId, testSlot.getId(), SlotStatus.FREE).status()).isEqualTo(SlotStatus.FREE);
+        assertThat(slotRepository.findById(testSlot.getId())).get().extracting(Slot::getStatus).isEqualTo(SlotStatus.FREE);
+    }
+
+    @Test
+    void deleteSlot() {
+        Slot testSlot = saveSlot(calendar, "09:00", "10:00", SlotStatus.FREE);
+        slotService.delete(userId, testSlot.getId());
+        assertThat(slotRepository.existsById(testSlot.getId())).isFalse();
+    }
+
+    @Test
+    void bookedSlotNotDeletable() {
+        Slot testSlot = saveSlot(calendar, "09:00", "10:00", SlotStatus.FREE);
+        meetingService.schedule(userId, new ScheduleMeetingRequest(testSlot.getId(), "Title", null,
+                List.of(new Participant("Test", null))));
+
+        assertThatThrownBy(() -> slotService.update(userId, testSlot.getId(), new UpdateSlotRequest(at("11:00"), 60)))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT);
+        assertThatThrownBy(() -> slotService.updateStatus(userId, testSlot.getId(), SlotStatus.FREE))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT);
+        assertThatThrownBy(() -> slotService.delete(userId, testSlot.getId()))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT);
+
+        Slot stored = slotRepository.findById(testSlot.getId()).orElseThrow();
+        assertThat(stored.getStartTime()).isEqualTo(at("09:00"));
+        assertThat(stored.getStatus()).isEqualTo(SlotStatus.BOOKED);
     }
 
     private List<Long> findIds(SlotStatus status) {

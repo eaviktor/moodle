@@ -68,3 +68,17 @@ curl -X POST localhost:8080/api/v1/meetings/1 \
 
 curl localhost:8080/api/v1/meetings/1/1
 ```
+
+Modify/Status change/Delete slot
+
+```sh
+curl -X PUT localhost:8080/api/v1/slots/1/4 \
+  -H 'Content-Type: application/json' \
+  -d '{"startTime": "2026-11-02T15:00:00Z", "durationMinutes": 30}'
+
+curl -X PUT localhost:8080/api/v1/slots/1/3/status \
+  -H 'Content-Type: application/json' \
+  -d '{"status": "FREE"}'
+
+curl -X DELETE localhost:8080/api/v1/slots/1/2
+```

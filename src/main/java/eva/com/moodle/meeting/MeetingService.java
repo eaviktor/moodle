@@ -18,7 +18,7 @@ public class MeetingService {
     private final SlotRepository slotRepository;
     private final CalendarRepository calendarRepository;
 
-    private static MeetingResponse toResponse(final Meeting meeting) {
+    private static MeetingResponse mapResponse(final Meeting meeting) {
         final Slot slot = meeting.getSlot();
         return new MeetingResponse(meeting.getId(), slot.getId(), slot.getStartTime(), slot.getEndTime(),
                 meeting.getTitle(), meeting.getDescription(), List.copyOf(meeting.getParticipants()));
@@ -40,14 +40,14 @@ public class MeetingService {
         meeting.setTitle(request.title());
         meeting.setDescription(request.description());
         meeting.setParticipants(emptyIfNull(request.participants()));
-        return toResponse(meetingRepository.saveAndFlush(meeting));
+        return mapResponse(meetingRepository.saveAndFlush(meeting));
     }
 
     @Transactional(readOnly = true)
     public MeetingResponse get(final Long userId, final Long meetingId) {
         final Calendar calendar = calendarRepository.getByUserId(userId);
         return meetingRepository.findByIdAndSlotCalendar(meetingId, calendar)
-                .map(MeetingService::toResponse)
+                .map(MeetingService::mapResponse)
                 .orElseThrow(() -> BusinessException.notFound("Meeting", meetingId));
     }
 }

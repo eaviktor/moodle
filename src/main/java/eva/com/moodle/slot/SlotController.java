@@ -23,6 +23,24 @@ public class SlotController {
         return slotService.create(userId, request);
     }
 
+    @PutMapping("/{userId}/{slotId}")
+    public SlotResponse update(@PathVariable final Long userId, @PathVariable final Long slotId,
+                               @Valid @RequestBody final UpdateSlotRequest request) {
+        return slotService.update(userId, slotId, request);
+    }
+
+    @PutMapping("/{userId}/{slotId}/status")
+    public SlotResponse updateStatus(@PathVariable final Long userId, @PathVariable final Long slotId,
+                                     @Valid @RequestBody final UpdateSlotStatusRequest request) {
+        return slotService.updateStatus(userId, slotId, request.status());
+    }
+
+    @DeleteMapping("/{userId}/{slotId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable final Long userId, @PathVariable final Long slotId) {
+        slotService.delete(userId, slotId);
+    }
+
     @GetMapping("/{userId}")
     public Page<SlotResponse> list(@PathVariable final Long userId,
                                    @RequestParam final OffsetDateTime from,

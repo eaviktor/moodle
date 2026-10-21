@@ -1,6 +1,7 @@
 package eva.com.moodle.slot;
 
 import eva.com.moodle.common.BusinessException;
+import eva.com.moodle.meeting.MeetingRepository;
 import eva.com.moodle.slot.UserSlotStatus.TimeSlotPeriod;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -18,6 +19,11 @@ public class SlotService {
 
     private final SlotRepository slotRepository;
     private final CalendarRepository calendarRepository;
+    private final MeetingRepository meetingRepository;
+
+    private static SlotResponse mapResponse(final Slot slot) {
+        return new SlotResponse(slot.getId(), slot.getStartTime(), slot.getEndTime(), slot.getStatus());
+    }
 
     @Transactional
     public SlotResponse create(final Long userId, final CreateSlotRequest request) {
@@ -29,9 +35,35 @@ public class SlotService {
                 .plus(Duration.ofMinutes(request.durationMinutes())));
         slotEntity.setStatus(request.status() != null ? request.status() : SlotStatus.FREE);
 
-        requireNoOverlap(slotEntity);
-        final Slot slot = slotRepository.saveAndFlush(slotEntity);
-        return new SlotResponse(slot.getId(), slot.getStartTime(), slot.getEndTime(), slot.getStatus());
+        requireNoOverlap(calendar, slotEntity.getStartTime(), slotEntity.getEndTime(), null);
+        return mapResponse(slotRepository.saveAndFlush(slotEntity));
+    }
+
+    @Transactional
+    public SlotResponse update(final Long userId, final Long slotId, final UpdateSlotRequest request) {
+        final Calendar calendar = calendarRepository.lockByUserId(userId);
+        final Slot slot = getSlotWithoutMeeting(calendar, slotId);
+        final OffsetDateTime endTime = request.startTime()
+                .plus(Duration.ofMinutes(request.durationMinutes()));
+
+        requireNoOverlap(calendar, request.startTime(), endTime, slot.getId());
+        slot.setStartTime(request.startTime());
+        slot.setEndTime(endTime);
+        return mapResponse(slot);
+    }
+
+    @Transactional
+    public SlotResponse updateStatus(final Long userId, final Long slotId, final SlotStatus status) {
+        final Calendar calendar = calendarRepository.lockByUserId(userId);
+        final Slot slot = getSlotWithoutMeeting(calendar, slotId);
+        slot.setStatus(status);
+        return mapResponse(slot);
+    }
+
+    @Transactional
+    public void delete(final Long userId, final Long slotId) {
+        final Calendar calendar = calendarRepository.lockByUserId(userId);
+        slotRepository.delete(getSlotWithoutMeeting(calendar, slotId));
     }
 
     @Transactional
@@ -39,7 +71,7 @@ public class SlotService {
         final EnumSet<SlotStatus> statuses = status == null ? EnumSet.allOf(SlotStatus.class) : EnumSet.of(status);
 
         return slotRepository.findInRange(calendarRepository.getByUserId(userId), statuses, from, to, pageable)
-                .map(slot -> new SlotResponse(slot.getId(), slot.getStartTime(), slot.getEndTime(), slot.getStatus()));
+                .map(SlotService::mapResponse);
     }
 
     @Transactional
@@ -75,15 +107,26 @@ public class SlotService {
         return new UserSlotStatus(from, to, periods);
     }
 
-    private void requireNoOverlap(final Slot slot) {
-        final boolean overlaps = slotRepository.findInRange(slot.getCalendar(),
+    // Booked slots are not 'modifiable'
+    private Slot getSlotWithoutMeeting(final Calendar calendar, final Long slotId) {
+        final Slot slot = slotRepository.findByIdAndCalendar(slotId, calendar)
+                .orElseThrow(() -> BusinessException.notFound("Slot", slotId));
+        if (meetingRepository.existsBySlotId(slotId)) {
+            throw BusinessException.conflict("Slot %d has a meeting".formatted(slotId));
+        }
+        return slot;
+    }
+
+    private void requireNoOverlap(final Calendar calendar, final OffsetDateTime start, final OffsetDateTime end,
+                                  final Long ignoredSlotId) {
+        final boolean overlaps = slotRepository.findInRange(calendar,
                         EnumSet.allOf(SlotStatus.class),
-                        slot.getStartTime(),
-                        slot.getEndTime(),
+                        start,
+                        end,
                         Pageable.unpaged())
                 .stream()
                 .anyMatch(other -> !other.getId()
-                        .equals(slot.getId()));
+                        .equals(ignoredSlotId));
         if (overlaps) {
             throw BusinessException.conflict("Slot overlaps another slot in the calendar");
         }

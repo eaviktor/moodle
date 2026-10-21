@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface MeetingRepository extends JpaRepository<Meeting, Long> {
 
     Optional<Meeting> findByIdAndSlotCalendar(Long id, Calendar calendar);
+
+    boolean existsBySlotId(Long slotId);
 }
